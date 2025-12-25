@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Fake Job Posting Detection System</title>
+<style>
+body { font-family: Arial; background:#f5f8ff; padding:30px }
+textarea { width:100%; height:120px }
+button { padding:10px 20px; margin:10px 5px }
+.result { padding:20px; border-radius:10px }
+.HIGH { background:#ffe5e5; color:red }
+.MEDIUM { background:#fff5cc; color:orange }
+.LOW { background:#e6fffa; color:green }
+</style>
+</head>
+
+<body>
+<h1>Fake Job Posting Detection System</h1>
+
+<textarea id="jobText">
+Work from home job.
+No interview.
+Pay registration fee.
+Guaranteed income.
+</textarea><br>
+
+<button onclick="scanJob()">Check Job Risk</button>
+<button onclick="window.location.href='history.html'">View Scan History</button>
+
+<div id="result"></div>
+
+<script>
+const API = "https://YOUR_API_URL/scan";
+
+function scanJob() {
+    fetch(API, {
+        method:"POST",
+        headers:{ "Content-Type":"application/json" },
+        body:JSON.stringify({ jobText: document.getElementById("jobText").value })
+    })
+    .then(res=>res.json())
+    .then(data=>{
+        document.getElementById("result").innerHTML = `
+        <div class="result ${data.riskLevel}">
+            <h2>${data.riskLevel} RISK</h2>
+            <p><b>Strong Flags:</b> ${data.strongFlags}</p>
+            <p><b>Medium Flags:</b> ${data.mediumFlags}</p>
+        </div>`;
+    });
+}
+</script>
+</body>
+</html>
