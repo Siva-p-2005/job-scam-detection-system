@@ -1,0 +1,15 @@
+job-scam-detection-system/
+│
+├── frontend/
+│   ├── index.html
+│   └── history.html
+│
+├── lambda/
+│   ├── fake_job_detector.py
+│   └── scan_history.py
+│
+├── architecture/
+│   └── architecture.png
+│
+├── README.md
+└── .gitignore
