@@ -1,0 +1,22 @@
+📌 Test Event
+{}
+
+✅ Expected Output
+[
+  {
+    "scanId": "uuid",
+    "jobText": "work from home job...",
+    "strongFlags": 2,
+    "mediumFlags": 1,
+    "riskLevel": "HIGH",
+    "scannedAt": "2025-01-17 10:30:22"
+  },
+  {
+    "scanId": "uuid",
+    "jobText": "software engineer job...",
+    "strongFlags": 0,
+    "mediumFlags": 0,
+    "riskLevel": "LOW",
+    "scannedAt": "2025-01-16 14:12:10"
+  }
+]
