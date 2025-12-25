@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Scan History</title>
+<style>
+table{width:100%;border-collapse:collapse}
+th,td{border:1px solid #333;padding:8px;text-align:center}
+th{background:#1e90ff;color:white}
+</style>
+</head>
+
+<body>
+<h2>Job Scan History</h2>
+<table>
+<tr>
+<th>Time</th>
+<th>Job</th>
+<th>Strong</th>
+<th>Medium</th>
+<th>Risk</th>
+</tr>
+<tbody id="data"></tbody>
+</table>
+
+<script>
+fetch("https://YOUR_API_URL/history")
+.then(res=>res.json())
+.then(items=>{
+    items.forEach(i=>{
+        document.getElementById("data").innerHTML += `
+        <tr>
+            <td>${i.scannedAt}</td>
+            <td>${i.jobText}</td>
+            <td>${i.strongFlags}</td>
+            <td>${i.mediumFlags}</td>
+            <td>${i.riskLevel}</td>
+        </tr>`;
+    });
+});
+</script>
+</body>
+</html>
