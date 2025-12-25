@@ -1,0 +1,11 @@
+📌 Test Event (Paste in Lambda Test)
+{
+  "body": "{\"jobText\":\"Work from home job. No interview required. Pay registration fee. Guaranteed income.\"}"
+}
+
+✅ Expected Output
+{
+  "riskLevel": "HIGH",
+  "strongFlags": 2,
+  "mediumFlags": 0
+}
