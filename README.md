@@ -1,309 +1,175 @@
-🔵 STEP 1: CREATE DYNAMODB TABLE (DATABASE)
+Job Scam Detection System – Implementation Steps
 
-Open AWS Console
+This section explains the complete step-by-step process followed to build and deploy the Job Scam Detection System using AWS serverless services.
 
-Go to DynamoDB
+STEP 1: Create DynamoDB Table (Database)
 
-Click Create table
+The DynamoDB table is used to store all job scan results.
 
-Table details
+Open AWS Management Console
 
-Table name: JobScanResults
-
-Partition key: scanId (String)
+Navigate to DynamoDB
 
 Click Create table
 
-✅ Database ready
+Table Name: JobScanResults
 
-🔵 STEP 2: CREATE IAM ROLE FOR LAMBDA
+Partition Key: scanId (String)
 
-Go to IAM → Roles
+Click Create table
 
-Click Create role
+This table stores job descriptions, detected scam indicators, risk levels, and scan timestamps.
 
-Select AWS Service → Lambda
+STEP 2: Create IAM Role for Lambda
 
-Click Next
+An IAM role is required to allow Lambda functions to access DynamoDB and CloudWatch.
 
-Attach policies
+Open IAM service
+
+Go to Roles → Create role
+
+Select AWS Service and choose Lambda
+
+Attach the following policies:
 
 AmazonDynamoDBFullAccess
 
 CloudWatchLogsFullAccess
 
-Role name: JobScamLambdaRole
+Role Name: JobScamLambdaRole
 
 Click Create role
 
-✅ Permissions ready
+This role provides necessary permissions for backend processing.
 
-🔵 STEP 3: CREATE LAMBDA – JOB SCAN FUNCTION
+STEP 3: Create Lambda Function – Job Scan Function
 
-Go to AWS Lambda
+This Lambda function analyzes job descriptions and detects scam indicators.
+
+Open AWS Lambda
 
 Click Create function
 
 Choose Author from scratch
 
-Function settings
-
-Name: fake_job_detector
+Function Name: fake_job_detector
 
 Runtime: Python 3.10
 
-Role: JobScamLambdaRole
+Execution Role: JobScamLambdaRole
 
 Click Create function
 
-🔹 Lambda Code (Scan Job & Store Result)
-import json
-import boto3
-import uuid
-from datetime import datetime
+This function processes job descriptions, classifies risk levels, and stores results in DynamoDB.
 
-dynamodb = boto3.resource('dynamodb')
-table = dynamodb.Table('JobScanResults')
+STEP 4: Create Lambda Function – Scan History Function
 
-STRONG_KEYWORDS = [
-    "registration fee",
-    "pay money",
-    "no interview",
-    "guaranteed income",
-    "work from home"
-]
+This Lambda function retrieves previously scanned job records.
 
-MEDIUM_KEYWORDS = [
-    "urgent hiring",
-    "whatsapp only",
-    "quick money"
-]
+Create another Lambda function
 
-def lambda_handler(event, context):
-    body = json.loads(event['body'])
-    job_text = body.get("jobText", "").lower()
-
-    strong_flags = sum(1 for k in STRONG_KEYWORDS if k in job_text)
-    medium_flags = sum(1 for k in MEDIUM_KEYWORDS if k in job_text)
-
-    if strong_flags >= 2:
-        risk = "HIGH"
-    elif strong_flags == 1 or medium_flags >= 1:
-        risk = "MEDIUM"
-    else:
-        risk = "LOW"
-
-    item = {
-        "scanId": str(uuid.uuid4()),
-        "jobText": job_text,
-        "strongFlags": strong_flags,
-        "mediumFlags": medium_flags,
-        "riskLevel": risk,
-        "scannedAt": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    }
-
-    table.put_item(Item=item)
-
-    return {
-        "statusCode": 200,
-        "headers": {
-            "Access-Control-Allow-Origin": "*",
-            "Content-Type": "application/json"
-        },
-        "body": json.dumps(item)
-    }
-
-
-Click Deploy
-
-🔵 STEP 4: CREATE LAMBDA – HISTORY FUNCTION
-
-Create another Lambda
-
-Name: scan_history
+Function Name: scan_history
 
 Runtime: Python 3.10
 
-Role: same IAM role
+Execution Role: JobScamLambdaRole
 
-🔹 History Lambda Code
-import json
-import boto3
+Click Create function
 
-dynamodb = boto3.resource('dynamodb')
-table = dynamodb.Table('JobScanResults')
+This function fetches and returns all scan records from DynamoDB in sorted order.
 
-def lambda_handler(event, context):
-    response = table.scan()
-    items = response.get("Items", [])
-    items.sort(key=lambda x: x["scannedAt"], reverse=True)
+STEP 5: Test Lambda Functions
 
-    return {
-        "statusCode": 200,
-        "headers": {
-            "Access-Control-Allow-Origin": "*",
-            "Content-Type": "application/json"
-        },
-        "body": json.dumps(items)
-    }
+Lambda testing is performed using built-in test events.
 
+The job scan function is tested using a sample job description
 
-Click Deploy
+The scan history function is tested without input parameters
 
-🔵 STEP 5: TEST LAMBDA FUNCTIONS
-Test Event for Scan Lambda
-{
-  "body": "{\"jobText\":\"Work from home job. No interview. Pay registration fee.\"}"
-}
+Successful execution confirms correct classification and database storage
 
+STEP 6: Create API Gateway (HTTP API)
 
-Expected result → HIGH risk
+API Gateway connects the frontend to Lambda functions.
 
-Test Event for History Lambda
-{}
-
-
-Expected → List of scan records
-
-🔵 STEP 6: CREATE API GATEWAY (HTTP API)
-
-Go to API Gateway
+Open API Gateway
 
 Click Create API
 
-Choose HTTP API
+Select HTTP API
 
-Click Build
+Configure routes:
 
-🔹 Configure Routes
-Method	Path	Integration
-POST	/scan	fake_job_detector
-GET	/history	scan_history
+POST /scan → Job Scan Lambda
+
+GET /history → Scan History Lambda
 
 Enable CORS
 
-Allow origin: *
-
 Allow methods: GET, POST
 
-Click Deploy
+Deploy the API
 
-Copy Invoke URL
+Copy the Invoke URL
 
-Example:
+This API acts as the communication layer between frontend and backend.
 
-https://abcd123.execute-api.ap-south-1.amazonaws.com
+STEP 7: Create S3 Bucket (Frontend Hosting)
 
-🔵 STEP 7: CREATE S3 BUCKET (FRONTEND)
+Amazon S3 is used to host the frontend web application.
 
-Go to S3
+Open Amazon S3
 
 Click Create bucket
 
-Bucket name:
+Provide a unique bucket name
 
-fake-job-detector-frontend-siva
+Disable Block all public access
 
+Create the bucket
 
-Uncheck Block all public access
+The bucket stores frontend HTML files.
 
-Create bucket
+STEP 8: Upload Frontend Files
 
-🔵 STEP 8: FRONTEND – index.html
+Upload index.html (job scan page)
 
-Upload this file to S3:
+Upload history.html (scan history page)
 
-<!DOCTYPE html>
-<html>
-<head>
-<title>Fake Job Posting Detection</title>
-</head>
-<body>
-<h1>Fake Job Posting Detection System</h1>
+Ensure files are publicly accessible
 
-<textarea id="jobText"></textarea><br><br>
+These pages allow users to interact with the system.
 
-<button onclick="scan()">Check Job Risk</button>
-<button onclick="location.href='history.html'">View Scan History</button>
+STEP 9: Enable Static Website Hosting
 
-<div id="result"></div>
-
-<script>
-function scan() {
-fetch("https://YOUR_API_URL/scan", {
-method:"POST",
-headers:{ "Content-Type":"application/json" },
-body: JSON.stringify({ jobText: document.getElementById("jobText").value })
-})
-.then(res=>res.json())
-.then(data=>{
-document.getElementById("result").innerHTML =
-"<h2>"+data.riskLevel+" RISK</h2>";
-});
-}
-</script>
-</body>
-</html>
-
-🔵 STEP 9: FRONTEND – history.html
-<!DOCTYPE html>
-<html>
-<body>
-<h2>Scan History</h2>
-<table border="1">
-<tr>
-<th>Time</th>
-<th>Job</th>
-<th>Strong</th>
-<th>Medium</th>
-<th>Risk</th>
-</tr>
-<tbody id="data"></tbody>
-</table>
-
-<script>
-fetch("https://YOUR_API_URL/history")
-.then(res=>res.json())
-.then(items=>{
-items.forEach(i=>{
-document.getElementById("data").innerHTML += `
-<tr>
-<td>${i.scannedAt}</td>
-<td>${i.jobText}</td>
-<td>${i.strongFlags}</td>
-<td>${i.mediumFlags}</td>
-<td>${i.riskLevel}</td>
-</tr>`;
-});
-});
-</script>
-</body>
-</html>
-
-🔵 STEP 10: ENABLE S3 STATIC WEBSITE
-
-S3 → Bucket → Properties
+Go to S3 bucket Properties
 
 Enable Static website hosting
 
-Index document: index.html
+Set index document as index.html
 
-Save
+Save changes
 
-Copy website URL
+Copy the website endpoint URL
 
-🔵 STEP 11: VERIFY COMPLETE FLOW
+This URL is used to access the application.
 
-Open S3 website URL
+STEP 10: Verify Complete Application Flow
 
-Paste job description
+Open the S3 website URL
 
-Click Check Job Risk
+Enter a job description
 
-Result shows HIGH / MEDIUM / LOW
+Submit for risk analysis
 
-Click View Scan History
+View risk classification (LOW / MEDIUM / HIGH)
 
-History page loads records
+Navigate to history page
 
-✅ END-TO-END WORKING
+Confirm previous scan records are displayed
+
+Successful execution confirms end-to-end functionality.
+
+Conclusion
+
+The Job Scam Detection System is successfully implemented using AWS serverless services. The system demonstrates real-time job scam detection, secure data storage, and scalable architecture without the need for server management.
