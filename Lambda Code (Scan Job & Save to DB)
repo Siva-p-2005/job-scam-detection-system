@@ -1,0 +1,55 @@
+import json
+import boto3
+import uuid
+from datetime import datetime
+
+dynamodb = boto3.resource('dynamodb')
+table = dynamodb.Table('JobScanResults')
+
+STRONG_KEYWORDS = [
+    "registration fee",
+    "pay money",
+    "no interview",
+    "guaranteed income",
+    "work from home"
+]
+
+MEDIUM_KEYWORDS = [
+    "urgent hiring",
+    "whatsapp only",
+    "quick money"
+]
+
+def lambda_handler(event, context):
+    body = json.loads(event['body'])
+    job_text = body.get("jobText", "").lower()
+
+    strong_flags = sum(1 for k in STRONG_KEYWORDS if k in job_text)
+    medium_flags = sum(1 for k in MEDIUM_KEYWORDS if k in job_text)
+
+    if strong_flags >= 2:
+        risk = "HIGH"
+    elif strong_flags == 1 or medium_flags >= 1:
+        risk = "MEDIUM"
+    else:
+        risk = "LOW"
+
+    item = {
+        "scanId": str(uuid.uuid4()),
+        "jobText": job_text,
+        "strongFlags": strong_flags,
+        "mediumFlags": medium_flags,
+        "riskLevel": risk,
+        "scannedAt": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    }
+
+    table.put_item(Item=item)
+
+    return {
+        "statusCode": 200,
+        "headers": {
+            "Access-Control-Allow-Origin": "*",
+            "Content-Type": "application/json"
+        },
+        "body": json.dumps(item)
+    }
